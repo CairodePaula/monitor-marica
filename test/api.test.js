@@ -101,7 +101,7 @@ test('NASA indisponível sem cache → 503, nunca anuncia zero focos', async () 
   const j = await r.json();
   assert.strictEqual(r.status, 503);
   assert.strictEqual(j.fonte, 'indisponivel');
-  assert.match(j.alerta.mensagem, /não significa que não existam focos/i);
+  assert.match(j.alerta.mensagem, /não interprete isso como ausência de focos/i);
 });
 
 test('consulta 4 sensores, consulta 2 dias e consolida detecção duplicada', async () => {

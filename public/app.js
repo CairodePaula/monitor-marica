@@ -2,11 +2,22 @@ const rotuloFonte=f=>({nasa:'NASA ao vivo',cache:'cache local','cache-offline':'
 function nivel(c){return c>=80?'alto':c>=50?'medio':'baixo'}
   function cor(c){return c>=80?'#ff3b30':c>=50?'#ff9f0a':'#ffd60a'}
 
-  const map=L.map('map',{zoomControl:true}).setView([-22.92,-42.82],12);
+  const CENTRO_MARICA = [-22.92,-42.82];
+  const LIMITES_RJ = [[-23.4,-44.9],[-20.7,-40.9]];
+  const LIMITES_MARICA = [[-23.1,-43.2],[-22.7,-42.6]];
+  const map=L.map('map',{zoomControl:true}).setView(CENTRO_MARICA,12);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
     attribution:'© OpenStreetMap | NASA FIRMS',maxZoom:19
   }).addTo(map);
 
+  // Destaque permanente de Maricá enquanto a consulta e o mapa abrangem o RJ.
+  const destaqueMarica = L.rectangle(LIMITES_MARICA,{
+    color:'#ff5a1f',weight:2,opacity:.95,fillColor:'#ff5a1f',fillOpacity:.08,dashArray:'6 4'
+  }).addTo(map);
+  destaqueMarica.bindTooltip('MARICÁ',{
+    permanent:true,direction:'center',className:'marica-label',opacity:1
+  }).openTooltip();
+  let enquadramentoRJDefinido=false;
   let focosAtuais=[],marcadores=[],camadaCalor=null,modoVisu='marcadores',filtroNivel='todos';
   const limparMarc=()=>{marcadores.forEach(m=>map.removeLayer(m));marcadores=[]};
   const limparCalor=()=>{if(camadaCalor){map.removeLayer(camadaCalor);camadaCalor=null}};
@@ -71,8 +82,13 @@ function nivel(c){return c>=80?'alto':c>=50?'medio':'baixo'}
       const r=await fetch('/api/focos'+(forcar?'?forcar=true':''));
       const j=await r.json();
       focosAtuais=j.focos||[];
-      pill.className='pill live';txt.textContent='NASA FIRMS · '+(j.area||'Maricá');
-      document.getElementById('map-area').textContent='Área: '+(j.area||'Maricá');
+      const consultaEstadual=j.area==='RJ';
+      pill.className='pill live';txt.textContent='NASA FIRMS · '+(consultaEstadual?'RJ inteiro':(j.area||'Maricá'));
+      document.getElementById('map-area').textContent=consultaEstadual?'RJ inteiro · Maricá destacada':'Área: '+(j.area||'Maricá');
+      if(consultaEstadual&&!enquadramentoRJDefinido){
+        map.fitBounds(LIMITES_RJ,{padding:[18,18]});
+        enquadramentoRJDefinido=true;
+      }
       atualizarAlerta(j.alerta||{});
       const e=j.estatisticas||{total:0,alto:0,medio:0,baixo:0};
       document.getElementById('s-total').textContent=e.total;

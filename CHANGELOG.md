@@ -164,3 +164,10 @@ adianta itens dos "Próximos Passos" da apresentação.
   em algumas redes) para **OpenStreetMap** — servidor de tiles muito mais
   amplamente acessível. O visual escuro foi mantido aplicando um filtro CSS
   (invert + hue-rotate) sobre os tiles, sem afetar marcadores nem mapa de calor.
+
+## Monitoramento estadual (RJ)
+
+- A consulta NASA FIRMS passa a usar a área estadual em todas as coletas, sem depender de Maricá estar sem focos.
+- Cache só é reutilizado quando foi gerado para o escopo estadual; cache antigo de Maricá é ignorado.
+- Mapa abre enquadrado no RJ e mantém Maricá destacada com contorno e rótulo.
+- A área NASA é um retângulo de coordenadas aproximado do estado e pode incluir pequenas áreas vizinhas.

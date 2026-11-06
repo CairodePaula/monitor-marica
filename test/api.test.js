@@ -50,9 +50,12 @@ test('NASA indisponível e sem cache → dados de demonstração (não grava his
   assert.strictEqual(st.bancoConectado, true);
 });
 
-test('NASA ok → fonte nasa, grava histórico, alerta e cache no banco', async () => {
-  axios.get = async () => ({ data: CSV });
+test('NASA consulta todo o RJ → fonte nasa, grava histórico, alerta e cache no banco', async () => {
+  let urlConsultada = '';
+  axios.get = async url => { urlConsultada = url; return { data: CSV }; };
   const j = await (await get('/api/focos?forcar=true')).json();
+  assert.ok(urlConsultada.includes('/VIIRS_SNPP_NRT/-44.9,-23.4,-40.9,-20.7/1'));
+  assert.strictEqual(j.area, 'RJ');
   assert.strictEqual(j.fonte, 'nasa');
   assert.strictEqual(j.total, 2);
   assert.strictEqual(j.estatisticas.alto, 1);
@@ -63,14 +66,14 @@ test('NASA ok → fonte nasa, grava histórico, alerta e cache no banco', async 
   assert.strictEqual(st.versao, require('../package.json').version);
 });
 
-test('segunda chamada usa cache de 30 min', async () => {
+test('segunda chamada usa cache estadual de 30 min', async () => {
   axios.get = async () => { throw new Error('não deveria chamar'); };
   const j = await (await get('/api/focos')).json();
   assert.strictEqual(j.fonte, 'cache');
   assert.strictEqual(j.total, 2);
 });
 
-test('NASA cai depois de ter cache → cache-offline, sem apagar o histórico', async () => {
+test('NASA cai depois de ter cache estadual → cache-offline, sem apagar o histórico', async () => {
   axios.get = async () => { throw new Error('rede fora'); };
   const j = await (await get('/api/focos?forcar=true')).json();
   assert.strictEqual(j.fonte, 'cache-offline');
@@ -124,4 +127,27 @@ test('segurança: arquivos sensíveis NÃO são servidos', async () => {
   const home = await get('/');
   assert.strictEqual(home.status, 200);
   assert.ok(home.headers.get('content-security-policy'));
+});
+
+
+test('cache antigo de Maricá é ignorado e a NASA é consultada para o RJ', async () => {
+  await db.salvarCache({
+    data: [{ lat: -22.92, lng: -42.82, confidence: 90, frp: 10 }],
+    ultimaAtualizacao: Date.now(),
+    area: 'Maricá'
+  });
+
+  let chamadas = 0;
+  let urlConsultada = '';
+  axios.get = async url => {
+    chamadas += 1;
+    urlConsultada = url;
+    return { data: CSV };
+  };
+
+  const j = await (await get('/api/focos')).json();
+  assert.strictEqual(chamadas, 1);
+  assert.ok(urlConsultada.includes('/VIIRS_SNPP_NRT/-44.9,-23.4,-40.9,-20.7/1'));
+  assert.strictEqual(j.area, 'RJ');
+  assert.strictEqual(j.fonte, 'nasa');
 });

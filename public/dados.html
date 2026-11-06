@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0a0b0d" />
+  <title>Dados e uso — Monitor de Incêndios</title>
+  <style>
+    :root{
+      color-scheme:dark;
+      --bg:#0a0b0d;--surface:#101216;--card:#15171c;--card-2:#181b21;
+      --hover:#1e2128;--border:#23262e;--border-soft:#1b1d23;
+      --text:#eceef1;--dim:#9398a2;--faint:#5e636d;
+      --accent:#ff5a1f;--accent-2:#ff8a3d;--accent-glow:rgba(255,90,31,.24);
+      --ok:#30d158;--r-lg:18px;--shadow:0 10px 30px rgba(0,0,0,.4);
+      --font:'Inter',ui-sans-serif,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{min-height:100vh;background:var(--bg);background-image:radial-gradient(1100px 560px at 72% -12%,rgba(255,90,31,.07),transparent 60%),radial-gradient(800px 460px at -5% 0%,rgba(60,80,120,.05),transparent 55%);color:var(--text);font-family:var(--font);-webkit-font-smoothing:antialiased}
+    .page{width:min(920px,100%);margin:0 auto;padding:34px 24px 48px}
+    .top{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:34px}
+    .back{display:inline-flex;align-items:center;gap:8px;color:var(--dim);text-decoration:none;font-size:.8rem;padding:9px 12px;border:1px solid var(--border);border-radius:11px;background:rgba(21,23,28,.72);transition:.18s}
+    .back:hover{color:var(--text);background:var(--hover);border-color:#343842}
+    .back:focus-visible,.btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+    .eyebrow{font-size:.68rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:8px}
+    h1{font-size:clamp(1.45rem,4vw,2rem);letter-spacing:-.04em;font-weight:700}
+    .intro{color:var(--dim);font-size:.86rem;line-height:1.55;margin-top:8px;max-width:58ch}
+    .section-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin:30px 0 13px}
+    .section-head h2{font-size:.76rem;letter-spacing:.09em;text-transform:uppercase;color:var(--dim)}
+    .section-head span{font-size:.7rem;color:var(--faint)}
+    .metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+    .metric{background:linear-gradient(145deg,rgba(24,27,33,.98),rgba(21,23,28,.98));border:1px solid var(--border-soft);border-radius:15px;padding:18px 17px;min-width:0;box-shadow:var(--shadow)}
+    .metric .value{font-size:clamp(1.5rem,3vw,2rem);line-height:1.1;font-weight:750;letter-spacing:-.04em;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+    .metric .label{font-size:.73rem;color:var(--dim);margin-top:8px;line-height:1.4}
+    .metric .hint{font-size:.65rem;color:var(--faint);margin-top:5px}
+    .actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+    .action{display:flex;flex-direction:column;align-items:flex-start;gap:14px;min-width:0;padding:17px;border:1px solid var(--border-soft);border-radius:15px;background:var(--card);text-decoration:none;color:var(--text);transition:.18s}
+    .action:hover{background:var(--hover);border-color:#353943;transform:translateY(-1px)}
+    .action .icon{width:38px;height:38px;display:grid;place-items:center;border-radius:11px;background:rgba(255,90,31,.12);color:var(--accent);font-size:1.05rem;font-weight:800}
+    .action strong{font-size:.82rem}
+    .action small{display:block;color:var(--dim);font-size:.68rem;line-height:1.45;margin-top:4px}
+    .action .arrow{color:var(--faint);font-size:.8rem;margin-top:auto}
+    .action.feedback{background:linear-gradient(145deg,rgba(255,90,31,.13),rgba(21,23,28,.96));border-color:rgba(255,90,31,.2);cursor:pointer;font:inherit;text-align:left}
+    .status{min-height:20px;margin-top:15px;color:var(--faint);font-size:.7rem}
+    .status.erro{color:#ff8a82}
+    .foot{border-top:1px solid var(--border-soft);margin-top:32px;padding-top:14px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;color:var(--faint);font-size:.67rem}
+    dialog{width:min(460px,calc(100vw - 28px));max-height:calc(100dvh - 28px);margin:auto;padding:0;border:1px solid var(--border);border-radius:18px;background:var(--card);color:var(--text);box-shadow:0 24px 80px rgba(0,0,0,.58);overflow:auto}
+    dialog::backdrop{background:rgba(0,0,0,.72);backdrop-filter:blur(4px)}
+    .form{display:flex;flex-direction:column;gap:14px;padding:22px}
+    .form h2{font-size:1.05rem;letter-spacing:-.02em}
+    .form .help{font-size:.75rem;color:var(--dim);line-height:1.5;margin-top:-7px}
+    .form label{display:flex;flex-direction:column;gap:7px;color:var(--dim);font-size:.73rem}
+    .form select,.form textarea{width:100%;background:var(--card-2);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:11px 12px;font:inherit;font-size:.82rem}
+    .form select:focus,.form textarea:focus{outline:2px solid rgba(255,90,31,.45);border-color:var(--accent)}
+    .form textarea{min-height:110px;resize:vertical;line-height:1.5}
+    .form-actions{display:flex;justify-content:flex-end;gap:9px;margin-top:2px}
+    .btn{display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:9px 15px;border-radius:10px;border:1px solid var(--border);background:var(--card-2);color:var(--text);font:inherit;font-size:.76rem;font-weight:650;cursor:pointer;transition:.18s}
+    .btn:hover{background:var(--hover)}
+    .btn.primary{background:linear-gradient(145deg,var(--accent),#d9430d);border-color:transparent;box-shadow:0 6px 18px var(--accent-glow)}
+    .btn:disabled{opacity:.55;cursor:wait}
+    #fb-msg{min-height:1.1em;font-size:.75rem;line-height:1.4}
+    #fb-msg.ok{color:var(--ok)}#fb-msg.erro{color:#ff8a82}
+    @media(max-width:760px){.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.actions{grid-template-columns:1fr 1fr}.action.feedback{grid-column:1/-1}}
+    @media(max-width:480px){.page{padding:22px 14px 34px}.top{align-items:flex-start;flex-direction:column;margin-bottom:27px}.back{align-self:flex-start;white-space:nowrap;font-size:.72rem;padding:8px 9px}.metrics{gap:9px}.metric{padding:14px}.metric .label{font-size:.68rem}.actions{grid-template-columns:1fr 1fr;gap:9px}.action{padding:14px;gap:11px}.action strong{font-size:.76rem}.action small{font-size:.64rem}.form{padding:18px}}
+    @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+  </style>
+</head>
+<body>
+  <main class="page">
+    <div class="top">
+      <div>
+        <div class="eyebrow">Monitor de Incêndios</div>
+        <h1>Dados e uso</h1>
+        <p class="intro">Métricas de acesso dos últimos 30 dias, exportação do histórico de focos e canal de feedback.</p>
+      </div>
+      <a class="back" href="/" aria-label="Voltar ao monitor">← <span>Voltar ao monitor</span></a>
+    </div>
+
+    <section aria-labelledby="metricas-titulo">
+      <div class="section-head">
+        <h2 id="metricas-titulo">Métricas de acesso</h2>
+        <span>Últimos 30 dias</span>
+      </div>
+      <div class="metrics" aria-live="polite">
+        <article class="metric"><div class="value" id="m-acessos">—</div><div class="label">Acessos</div><div class="hint">Visualizações registradas</div></article>
+        <article class="metric"><div class="value" id="m-unicos">—</div><div class="label">Visitantes únicos</div><div class="hint">IPs anonimizados</div></article>
+        <article class="metric"><div class="value" id="m-dias">—</div><div class="label">Dias ativos</div><div class="hint">Dias com ao menos um acesso</div></article>
+        <article class="metric"><div class="value" id="m-retorno">—</div><div class="label">Taxa de retorno</div><div class="hint">Visitantes em mais de um dia</div></article>
+      </div>
+      <p class="status" id="metricas-status" role="status">Carregando métricas…</p>
+    </section>
+
+    <section aria-labelledby="acoes-titulo">
+      <div class="section-head">
+        <h2 id="acoes-titulo">Dados e contribuição</h2>
+        <span>Histórico e participação</span>
+      </div>
+      <div class="actions">
+        <a class="action" href="/api/historico/exportar?formato=csv" download>
+          <span class="icon" aria-hidden="true">CSV</span>
+          <span><strong>Exportar CSV</strong><small>Planilha compatível com Excel e outros editores</small></span>
+          <span class="arrow" aria-hidden="true">Baixar arquivo ↓</span>
+        </a>
+        <a class="action" href="/api/historico/exportar?formato=json" download>
+          <span class="icon" aria-hidden="true">{ }</span>
+          <span><strong>Exportar JSON</strong><small>Dados estruturados para integração e análise</small></span>
+          <span class="arrow" aria-hidden="true">Baixar arquivo ↓</span>
+        </a>
+        <button class="action feedback" id="btn-feedback" type="button">
+          <span class="icon" aria-hidden="true">✉</span>
+          <span><strong>Enviar feedback</strong><small>Compartilhe uma ideia, problema ou elogio</small></span>
+          <span class="arrow" aria-hidden="true">Abrir formulário ↗</span>
+        </button>
+      </div>
+    </section>
+
+    <footer class="foot">
+      <span id="versao">Monitor de Incêndios · versão —</span>
+      <span>As métricas são agregadas e não exibem dados pessoais.</span>
+    </footer>
+  </main>
+
+  <dialog id="dlg-feedback" aria-labelledby="fb-titulo">
+    <form class="form" id="form-feedback">
+      <h2 id="fb-titulo">Sua opinião sobre o monitor</h2>
+      <p class="help">O envio é anônimo. Não solicitamos nome, e-mail ou outros dados pessoais.</p>
+      <label for="fb-tipo">Tipo de feedback
+        <select id="fb-tipo" required>
+          <option value="ideia">Ideia para melhorar</option>
+          <option value="problema">Problema / erro</option>
+          <option value="elogio">Elogio</option>
+        </select>
+      </label>
+      <label for="fb-nota">Nota geral
+        <select id="fb-nota" required>
+          <option value="5">5 — Muito bom</option>
+          <option value="4">4 — Bom</option>
+          <option value="3">3 — Regular</option>
+          <option value="2">2 — Ruim</option>
+          <option value="1">1 — Muito ruim</option>
+        </select>
+      </label>
+      <label for="fb-comentario">Comentário (opcional)
+        <textarea id="fb-comentario" maxlength="500" placeholder="O que você tentou fazer? O que podemos melhorar?"></textarea>
+      </label>
+      <div id="fb-msg" role="status" aria-live="polite"></div>
+      <div class="form-actions">
+        <button class="btn" type="button" id="fb-cancelar">Fechar</button>
+        <button class="btn primary" type="submit" id="fb-enviar">Enviar feedback</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="dados.js" defer></script>
+</body>
+</html>

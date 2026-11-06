@@ -84,7 +84,6 @@ function nivel(c){return c>=80?'alto':c>=50?'medio':'baixo'}
       document.getElementById('src').textContent='Fonte: NASA FIRMS · VIIRS S-NPP — atualizado '+ag.toLocaleTimeString('pt-BR')+' ('+rotuloFonte(j.fonte)+')'+(j.aviso?' — '+j.aviso:'');
       if(j.fonte==='demonstracao'||j.fonte==='cache-offline'){pill.className='pill erro';txt.textContent=(j.fonte==='demonstracao'?'DEMONSTRAÇÃO':'Offline (cache)')+' · '+(j.area||'Maricá')}
       carregarHist();
-      carregarMetricas();
     }catch(err){
       console.error(err);
       pill.className='pill erro';txt.textContent='Erro de conexão';
@@ -96,7 +95,6 @@ function nivel(c){return c>=80?'alto':c>=50?'medio':'baixo'}
   document.getElementById('btn-atualizar').addEventListener('click',()=>carregarFocos(true));
   document.querySelectorAll('#seg-visu button').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('#seg-visu button').forEach(x=>x.classList.remove('ativo'));b.classList.add('ativo');modoVisu=b.dataset.modo;renderizar()}));
   document.querySelectorAll('#filtros .chip').forEach(c=>c.addEventListener('click',()=>{document.querySelectorAll('#filtros .chip').forEach(x=>x.classList.remove('ativo'));c.classList.add('ativo');filtroNivel=c.dataset.nivel;renderizar()}));
-  document.querySelectorAll('.nav-btn').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.nav-btn').forEach(x=>x.classList.remove('ativo'));b.classList.add('ativo');const t=document.getElementById(b.dataset.go);if(t)t.scrollIntoView({behavior:'smooth',block:'center'})}));
 
   // Relógio
   setInterval(()=>{document.getElementById('clock').textContent=new Date().toLocaleTimeString('pt-BR')},1000);
@@ -104,40 +102,8 @@ function nivel(c){return c>=80?'alto':c>=50?'medio':'baixo'}
   carregarFocos();
   setInterval(()=>carregarFocos(),30*60*1000);
   setTimeout(()=>map.invalidateSize(),300);
-
-
-  // ── v1.4.0: métricas, status e feedback ──
-  async function carregarMetricas(){
-    try{
-      const [m,s]=await Promise.all([fetch('/api/metricas?dias=30').then(r=>r.json()),fetch('/api/status').then(r=>r.json())]);
-      document.getElementById('m-acessos').textContent=m.totalAcessos;
-      document.getElementById('m-unicos').textContent=m.visitantesUnicos;
-      document.getElementById('m-dias').textContent=m.diasComAcesso;
-      document.getElementById('m-retorno').textContent=m.taxaRetorno+'%';
-      document.getElementById('versao').textContent='v'+s.versao+' · '+s.bancoDeDados+' · '+s.historicoRegistros+' coletas';
-    }catch(e){console.error(e)}
-  }
-
-  const dlg=document.getElementById('dlg-feedback');
-  const fbMsg=document.getElementById('fb-msg');
-  document.getElementById('btn-feedback').addEventListener('click',()=>{fbMsg.textContent='';fbMsg.className='';dlg.showModal()});
-  document.getElementById('fb-cancelar').addEventListener('click',()=>dlg.close());
-  document.getElementById('form-feedback').addEventListener('submit',async ev=>{
-    ev.preventDefault();
-    const bt=document.getElementById('fb-enviar');bt.disabled=true;
-    try{
-      const r=await fetch('/api/feedback',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
-        tipo:document.getElementById('fb-tipo').value,
-        nota:Number(document.getElementById('fb-nota').value),
-        comentario:document.getElementById('fb-comentario').value
-      })});
-      if(!r.ok)throw new Error((await r.json()).erro||'Erro');
-      fbMsg.className='ok';fbMsg.textContent='Obrigado! Feedback registrado.';
-      document.getElementById('fb-comentario').value='';
-      setTimeout(()=>dlg.close(),1200);
-    }catch(err){fbMsg.className='erro';fbMsg.textContent='Não foi possível enviar: '+err.message}
-    finally{bt.disabled=false}
-  });
+  window.addEventListener('resize',()=>setTimeout(()=>map.invalidateSize(),120));
+  window.addEventListener('pageshow',()=>setTimeout(()=>map.invalidateSize(),120));
 
   // v1.4.0 (web): registra a visita 1x ao abrir (o HTML é servido pela CDN do Vercel)
   fetch('/api/visita',{method:'POST'}).catch(()=>{});

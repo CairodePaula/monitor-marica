@@ -73,6 +73,7 @@
     .alerta.atencao  .ico{background:rgba(255,159,10,.14);color:var(--medio)} .alerta.atencao .rot{color:var(--medio)}
     .alerta.critico  .ico{background:rgba(255,59,48,.16);color:var(--alto)} .alerta.critico .rot{color:var(--alto)}
     .alerta.critico{box-shadow:inset 0 0 0 1px rgba(255,59,48,.12)}
+    .alerta.indisponivel .ico{background:rgba(255,59,48,.14);color:var(--alto)} .alerta.indisponivel .rot{color:var(--alto)}
 
     /* Content grid */
     .content{flex:1; overflow-y:auto; padding:20px 24px 28px; display:grid;
@@ -226,7 +227,7 @@
     <div class="topbar">
       <div class="titles">
         <h1>Monitor de Incêndios - Maricá</h1>
-        <p>Monitoramento estadual · Maricá em destaque · NASA FIRMS / VIIRS S-NPP</p>
+        <p>Monitoramento estadual · Maricá em destaque · NASA FIRMS / VIIRS + MODIS</p>
       </div>
       <div class="spacer"></div>
       <span class="clock" id="clock">--:--:--</span>
@@ -248,7 +249,7 @@
     <div class="content">
       <!-- Stats -->
       <div class="stats" id="stats">
-        <div class="card stat t-total"><div class="tile"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c1 3-1.5 4-1.5 6.5A2 2 0 0 0 12.5 10c.5-1 .3-2 1-2.7 1.5 1.4 3 3.3 3 6.2A4.5 4.5 0 0 1 12 18a4.5 4.5 0 0 1-4.5-4.5c0-2 1-3.6 2.2-5C8.8 7 8.5 5 9.4 3.4 10.2 4 11 4.2 12 2z"/></svg></div><div><div class="num" id="s-total">—</div><div class="lbl">Focos hoje</div></div></div>
+        <div class="card stat t-total"><div class="tile"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c1 3-1.5 4-1.5 6.5A2 2 0 0 0 12.5 10c.5-1 .3-2 1-2.7 1.5 1.4 3 3.3 3 6.2A4.5 4.5 0 0 1 12 18a4.5 4.5 0 0 1-4.5-4.5c0-2 1-3.6 2.2-5C8.8 7 8.5 5 9.4 3.4 10.2 4 11 4.2 12 2z"/></svg></div><div><div class="num" id="s-total">—</div><div class="lbl">Focos nas últimas 24 horas (NASA)</div></div></div>
         <div class="card stat t-alto"><div class="tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg></div><div><div class="num" id="s-alto">—</div><div class="lbl">Risco alto</div></div></div>
         <div class="card stat t-medio"><div class="tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg></div><div><div class="num" id="s-medio">—</div><div class="lbl">Risco médio</div></div></div>
         <div class="card stat t-baixo"><div class="tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></svg></div><div><div class="num" id="s-baixo">—</div><div class="lbl">Risco baixo</div></div></div>
@@ -280,7 +281,7 @@
         <div class="card lista-card" id="lista-card">
           <div class="card-h"><h2>Focos detectados</h2><span class="meta" id="lista-count">0</span></div>
           <div class="foco-list" id="foco-list"><div class="loading">Buscando dados da NASA…</div></div>
-          <div class="src" id="src">Fonte: NASA FIRMS · VIIRS S-NPP</div>
+          <div class="src" id="src">Fonte: NASA FIRMS · VIIRS S-NPP, NOAA-20, NOAA-21 e MODIS</div>
         </div>
       </div>
 

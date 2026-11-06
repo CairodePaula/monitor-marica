@@ -1,5 +1,24 @@
 # 📋 CHANGELOG — Monitor de Incêndios - Maricá
 
+## [1.4.2 — janela real de 24h e resiliência multissensor] — 2026-11-06
+
+- Mantém coleta estadual em quatro produtos NASA FIRMS: VIIRS S-NPP, NOAA-20, NOAA-21 e MODIS NRT.
+- Corrige a janela temporal para as últimas 24 horas móveis exatas, usando os horários de aquisição UTC; consulta dois dias completos na API e descarta registros fora do intervalo.
+- Desativa dados fictícios em produção, mesmo que `ENABLE_DEMO=true` esteja configurado.
+- Impede cache HTTP de respostas da API de focos, alerta e status.
+- Testa respostas de erro que não sejam CSV, exclusão de dados com mais de 24 horas e falhas parciais de sensores.
+
+## [1.4.1 — correção multissensor NASA FIRMS] — 2026-11-06
+
+- Consulta estadual simultânea de VIIRS S-NPP, VIIRS NOAA-20, VIIRS NOAA-21 e MODIS NRT.
+- Consulta dois dias UTC completos, filtrando originalmente desde 00:00 UTC do dia anterior.
+- Normalização de confiança VIIRS (`l/n/h`) e MODIS (0–100), com preservação do valor original.
+- Deduplicação conservadora entre sensores, mantendo a lista das fontes associadas a cada foco.
+- Falhas isoladas de sensor são reportadas como coleta parcial; cache só é atualizado em coleta completa.
+- Cache versionado, invalidação do cache de sensor único e validade de 15 minutos.
+- Indisponibilidade geral não é exibida como zero focos; demonstração exigia `ENABLE_DEMO=true`.
+- Interface diferencia consulta parcial, cache e ausência real de detecções.
+
 ## [1.4.0 — publicação web] — 2026-11-05 — Vercel + Neon (PostgreSQL)
 
 Mesma versão funcional 1.4.0, adaptada para rodar online e ser usada pelo público na ação extensionista.

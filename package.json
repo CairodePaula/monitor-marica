@@ -1,6 +1,6 @@
 {
   "name": "monitor-marica",
-  "version": "1.4.0",
+  "version": "1.4.2",
   "description": "Monitor de Incêndios - Maricá (focos de incêndio via NASA FIRMS)",
   "main": "lib/app.js",
   "engines": {

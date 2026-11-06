@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Monitor de Incêndios - Maricá</title>
+  <link rel="stylesheet" href="vendor/leaflet/leaflet.css" />
+  <script src="vendor/leaflet/leaflet.js"></script>
+  <script src="vendor/leaflet/leaflet-heat.js"></script>
+  <style>
+    :root{
+      --bg:#0a0b0d; --surface:#101216; --card:#15171c; --card-2:#181b21;
+      --hover:#1e2128; --border:#23262e; --border-soft:#1b1d23;
+      --text:#eceef1; --dim:#9398a2; --faint:#5e636d;
+      --accent:#ff5a1f; --accent-2:#ff8a3d; --accent-glow:rgba(255,90,31,.30);
+      --alto:#ff3b30; --medio:#ff9f0a; --baixo:#ffd60a; --ok:#30d158;
+      --r-lg:18px; --r-md:13px; --r-sm:10px;
+      --shadow:0 10px 30px rgba(0,0,0,.45);
+      --font:'Inter',ui-sans-serif,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    }
+    *{margin:0;padding:0;box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      font-family:var(--font); color:var(--text); background:var(--bg);
+      background-image:radial-gradient(1200px 600px at 70% -10%,rgba(255,90,31,.06),transparent 60%),
+                       radial-gradient(900px 500px at -5% 0%,rgba(60,80,120,.05),transparent 55%);
+      -webkit-font-smoothing:antialiased; overflow:hidden;
+    }
+    .app{display:grid; grid-template-columns:74px 1fr; height:100vh}
+
+    /* ── Rail (sidebar de ícones) ── */
+    .rail{
+      background:var(--surface); border-right:1px solid var(--border-soft);
+      display:flex; flex-direction:column; align-items:center; padding:16px 0; gap:6px;
+    }
+    .brand{
+      width:42px; height:42px; border-radius:13px; display:grid; place-items:center;
+      background:linear-gradient(145deg,var(--accent),#c8390a);
+      box-shadow:0 6px 18px var(--accent-glow); margin-bottom:14px;
+    }
+    .brand svg{width:22px;height:22px;color:#fff}
+    .nav-btn{
+      width:46px; height:46px; border-radius:13px; border:0; background:transparent;
+      color:var(--faint); display:grid; place-items:center; cursor:pointer;
+      transition:.18s; position:relative;
+    }
+    .nav-btn svg{width:20px;height:20px}
+    .nav-btn:hover{background:var(--hover); color:var(--dim)}
+    .nav-btn.ativo{background:var(--card-2); color:var(--accent)}
+    .nav-btn.ativo::before{content:"";position:absolute;left:-16px;top:12px;bottom:12px;width:3px;border-radius:3px;background:var(--accent)}
+    .rail .sep{flex:1}
+    .nav-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+    /* ── Shell ── */
+    .shell{display:flex; flex-direction:column; min-width:0; height:100vh}
+
+    /* Topbar */
+    .topbar{
+      display:flex; align-items:center; gap:16px; padding:14px 24px;
+      border-bottom:1px solid var(--border-soft);
+    }
+    .topbar .titles h1{font-size:1.02rem; font-weight:600; letter-spacing:-.01em}
+    .topbar .titles p{font-size:.72rem; color:var(--dim); margin-top:2px}
+    .topbar .spacer{flex:1}
+    .clock{font-size:.78rem; color:var(--dim); font-variant-numeric:tabular-nums}
+    .pill{
+      display:inline-flex; align-items:center; gap:7px; padding:6px 13px; border-radius:999px;
+      font-size:.72rem; font-weight:600; background:var(--card-2); border:1px solid var(--border);
+      color:var(--dim);
+    }
+    .pill .dot{width:7px;height:7px;border-radius:50%;background:var(--ok);box-shadow:0 0 8px var(--ok)}
+    .pill.erro{color:#ff8a82} .pill.erro .dot{background:var(--alto);box-shadow:0 0 8px var(--alto)}
+    .pill.live .dot{animation:pulse 2s infinite}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+    .btn{
+      display:inline-flex;align-items:center;gap:7px; padding:8px 15px; border-radius:11px; border:1px solid var(--border);
+      background:var(--card-2); color:var(--text); font-size:.76rem; font-weight:600; cursor:pointer; transition:.18s;
+    }
+    .btn svg{width:15px;height:15px}
+    .btn:hover{background:var(--hover); border-color:#30343d}
+    .btn.primary{background:linear-gradient(145deg,var(--accent),#d9430d); border-color:transparent; box-shadow:0 6px 18px var(--accent-glow)}
+    .btn.primary:hover{filter:brightness(1.07)}
+    .btn:disabled{opacity:.5;cursor:wait}
+    .btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+    /* Alert strip */
+    .alerta{
+      display:flex; align-items:center; gap:12px; padding:11px 24px; font-size:.84rem;
+      border-bottom:1px solid var(--border-soft); background:var(--surface);
+    }
+    .alerta .ico{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;flex-shrink:0}
+    .alerta .ico svg{width:17px;height:17px}
+    .alerta .rot{font-weight:700;letter-spacing:.04em;text-transform:uppercase;font-size:.74rem}
+    .alerta .msg{color:var(--dim)}
+    .alerta.tranquilo .ico{background:rgba(48,209,88,.14);color:var(--ok)} .alerta.tranquilo .rot{color:var(--ok)}
+    .alerta.atencao  .ico{background:rgba(255,159,10,.14);color:var(--medio)} .alerta.atencao .rot{color:var(--medio)}
+    .alerta.critico  .ico{background:rgba(255,59,48,.16);color:var(--alto)} .alerta.critico .rot{color:var(--alto)}
+    .alerta.critico{box-shadow:inset 0 0 0 1px rgba(255,59,48,.12)}
+
+    /* Content grid */
+    .content{flex:1; overflow-y:auto; padding:20px 24px 28px; display:grid;
+      grid-template-columns:1fr 332px; grid-template-rows:auto 1fr auto; gap:16px;
+      grid-template-areas:"stats stats" "map panel" "hist panel";}
+    .content::-webkit-scrollbar{width:10px}
+    .content::-webkit-scrollbar-thumb{background:#23262e;border-radius:6px;border:3px solid var(--bg)}
+
+    .card{background:var(--card); border:1px solid var(--border-soft); border-radius:var(--r-lg); box-shadow:var(--shadow)}
+    .card-h{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 0}
+    .card-h h2{font-size:.74rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--dim)}
+    .card-h .meta{font-size:.7rem;color:var(--faint)}
+
+    /* Stat cards */
+    .stats{grid-area:stats; display:grid; grid-template-columns:repeat(4,1fr); gap:14px}
+    .stat{display:flex; align-items:center; gap:14px; padding:16px 18px}
+    .stat .tile{width:48px;height:48px;border-radius:14px;display:grid;place-items:center;flex-shrink:0}
+    .stat .tile svg{width:22px;height:22px}
+    .stat .num{font-size:1.9rem;font-weight:700;line-height:1;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+    .stat .lbl{font-size:.72rem;color:var(--dim);margin-top:5px}
+    .stat.t-total .tile{background:rgba(255,90,31,.14);color:var(--accent)}
+    .stat.t-alto  .tile{background:rgba(255,59,48,.14);color:var(--alto)}
+    .stat.t-medio .tile{background:rgba(255,159,10,.14);color:var(--medio)}
+    .stat.t-baixo .tile{background:rgba(255,214,10,.14);color:var(--baixo)}
+
+    /* Map */
+    .map-card{grid-area:map; overflow:hidden; display:flex; flex-direction:column; min-height:340px}
+    #map{flex:1; background:#0c0d10}
+    .leaflet-container{background:#0c0d10; font-family:var(--font)}
+    .leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(.92) contrast(.95) saturate(.85)}
+    .leaflet-popup-content-wrapper{background:var(--card-2);color:var(--text);border-radius:12px;border:1px solid var(--border)}
+    .leaflet-popup-tip{background:var(--card-2);border:1px solid var(--border)}
+    .leaflet-popup-content{font-size:.78rem;line-height:1.5}
+    .leaflet-popup-content hr{border:0;border-top:1px solid var(--border);margin:6px 0}
+    .leaflet-bar a{background:var(--card-2);color:var(--text);border-color:var(--border)}
+    .leaflet-bar a:hover{background:var(--hover)}
+
+    /* Panel (right) */
+    .panel{grid-area:panel; display:flex; flex-direction:column; gap:16px; min-height:0}
+    .seg{display:flex;gap:6px;padding:12px 14px 0}
+    .seg button{flex:1;background:var(--card-2);color:var(--dim);border:1px solid var(--border);padding:9px;border-radius:10px;font-size:.72rem;font-weight:600;cursor:pointer;transition:.15s;display:flex;align-items:center;justify-content:center;gap:6px}
+    .seg button svg{width:14px;height:14px}
+    .seg button:hover{background:var(--hover)}
+    .seg button.ativo{background:rgba(255,90,31,.13);color:var(--accent);border-color:rgba(255,90,31,.4)}
+    .chips{display:flex;flex-wrap:wrap;gap:7px;padding:12px 14px 16px}
+    .chip{background:var(--card-2);color:var(--dim);border:1px solid var(--border);padding:6px 12px;border-radius:999px;font-size:.71rem;font-weight:500;cursor:pointer;transition:.15s}
+    .chip:hover{background:var(--hover)}
+    .chip.ativo{color:#fff;border-color:transparent}
+    .chip[data-nivel="todos"].ativo{background:var(--accent)}
+    .chip[data-nivel="alto"].ativo{background:var(--alto)}
+    .chip[data-nivel="medio"].ativo{background:var(--medio);color:#1a1205}
+    .chip[data-nivel="baixo"].ativo{background:var(--baixo);color:#1a1205}
+
+    .lista-card{flex:1; display:flex; flex-direction:column; min-height:200px; overflow:hidden}
+    .foco-list{flex:1; overflow-y:auto; padding:10px 14px 14px; display:flex; flex-direction:column; gap:8px}
+    .foco-list::-webkit-scrollbar{width:8px}
+    .foco-list::-webkit-scrollbar-thumb{background:#23262e;border-radius:6px}
+    .foco-item{background:var(--card-2);border:1px solid var(--border-soft);border-left:3px solid var(--accent);border-radius:10px;padding:10px 12px;cursor:pointer;transition:.15s}
+    .foco-item:hover{background:var(--hover);transform:translateX(2px)}
+    .foco-item.alto{border-left-color:var(--alto)}
+    .foco-item.medio{border-left-color:var(--medio)}
+    .foco-item.baixo{border-left-color:var(--baixo)}
+    .foco-item .ti{font-size:.8rem;font-weight:600}
+    .foco-item .su{font-size:.72rem;color:var(--dim);margin-top:3px}
+    .foco-item .cf{font-size:.68rem;margin-top:5px;font-weight:600}
+    .cf.alto{color:#ff6b63}.cf.medio{color:var(--medio)}.cf.baixo{color:var(--baixo)}
+
+    /* History */
+    .hist-card{grid-area:hist; padding-bottom:16px}
+    .barras{display:flex;align-items:flex-end;gap:10px;height:120px;padding:18px 18px 0}
+    .bcol{flex:1;display:flex;flex-direction:column;align-items:center;gap:7px;height:100%;justify-content:flex-end}
+    .bwrap{width:100%;flex:1;display:flex;align-items:flex-end}
+    .bar{width:100%;background:linear-gradient(180deg,var(--accent-2),var(--accent));border-radius:5px 5px 2px 2px;min-height:3px;position:relative;transition:height .4s cubic-bezier(.4,0,.2,1)}
+    .bar .v{position:absolute;top:-17px;left:50%;transform:translateX(-50%);font-size:.64rem;color:var(--dim);font-variant-numeric:tabular-nums}
+    .blbl{font-size:.62rem;color:var(--faint)}
+
+    .legenda{display:flex;gap:16px;flex-wrap:wrap;padding:0 18px 4px}
+    .leg{display:flex;align-items:center;gap:7px;font-size:.72rem;color:var(--dim)}
+    .leg .d{width:11px;height:11px;border-radius:50%}
+
+    .loading,.vazio{color:var(--faint);font-size:.78rem;text-align:center;padding:26px 12px}
+    .loading{animation:pulse 1.5s infinite}
+    .src{font-size:.68rem;color:var(--faint);padding:10px 14px;border-top:1px solid var(--border-soft);text-align:center}
+
+
+    /* ── v1.4.0: dados do sistema, exportação e feedback ── */
+    .dados-card{padding-bottom:14px}
+    .metricas{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;padding:12px 14px 0}
+    .metrica{background:var(--card-2);border:1px solid var(--border-soft);border-radius:10px;padding:9px 11px}
+    .metrica .n{font-size:1.15rem;font-weight:700;font-variant-numeric:tabular-nums}
+    .metrica .l{font-size:.64rem;color:var(--dim);margin-top:2px}
+    .acoes{display:flex;flex-wrap:wrap;gap:7px;padding:12px 14px 0}
+    .acoes .btn{flex:1;justify-content:center;text-decoration:none;min-width:84px}
+    .versao{font-size:.64rem;color:var(--faint);padding:10px 14px 0;text-align:center}
+    dialog#dlg-feedback{margin:auto;background:var(--card);color:var(--text);border:1px solid var(--border);border-radius:var(--r-lg);padding:0;width:min(420px,92vw);box-shadow:var(--shadow)}
+    dialog#dlg-feedback::backdrop{background:rgba(0,0,0,.6)}
+    dialog#dlg-feedback form{display:flex;flex-direction:column;gap:12px;padding:20px}
+    dialog#dlg-feedback h2{font-size:1rem}
+    dialog#dlg-feedback p.ajuda{font-size:.74rem;color:var(--dim)}
+    dialog#dlg-feedback label{font-size:.74rem;color:var(--dim);display:flex;flex-direction:column;gap:5px}
+    dialog#dlg-feedback select,dialog#dlg-feedback textarea{background:var(--card-2);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:9px;font:inherit;font-size:.82rem}
+    dialog#dlg-feedback textarea{min-height:90px;resize:vertical}
+    dialog#dlg-feedback .linha{display:flex;gap:8px;justify-content:flex-end}
+    #fb-msg{font-size:.76rem;min-height:1em}
+    #fb-msg.ok{color:var(--ok)} #fb-msg.erro{color:#ff8a82}
+
+    /* v1.4.0 (achados do teste simulado): telas de toque e diálogo em celular */
+    dialog#dlg-feedback{max-height:calc(100vh - 24px);max-height:calc(100dvh - 24px);overflow:auto}
+    @media (pointer:coarse){
+      .btn,.seg button,dialog#dlg-feedback select,dialog#dlg-feedback .btn{min-height:44px}
+      .chip{display:inline-flex;align-items:center;min-height:44px;padding-left:16px;padding-right:16px}
+    }
+    @media (max-width:980px){
+      body{overflow:auto}
+      .app{grid-template-columns:1fr}
+      .rail{flex-direction:row; height:auto; border-right:0; border-bottom:1px solid var(--border-soft); padding:10px 12px; overflow-x:auto}
+      .brand{margin-bottom:0;margin-right:8px}
+      .rail .sep{display:none}
+      .shell{height:auto}
+      .content{grid-template-columns:1fr; grid-template-areas:"stats" "map" "panel" "hist"; overflow:visible}
+      .stats{grid-template-columns:repeat(2,1fr)}
+      .map-card{height:60vh}
+    }
+    /* celular: cabeçalho quebra em linhas em vez de estourar a largura */
+    @media (max-width:600px){
+      .topbar{flex-wrap:wrap;gap:8px 10px;height:auto;padding:10px 12px}
+      .topbar .titles{flex:1 1 100%;min-width:0}
+      .topbar .titles p{display:none}
+      .topbar .spacer,.clock{display:none}
+      .topbar .btn{margin-left:auto}
+      .stats{grid-template-columns:repeat(2,1fr)}
+      .content{padding-left:12px;padding-right:12px}
+    }
+    @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+  </style>
+</head>
+<body>
+<div class="app">
+  <!-- Rail -->
+  <nav class="rail">
+    <div class="brand" title="Monitor de Incêndios">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c1 3-1.5 4-1.5 6.5A2 2 0 0 0 12.5 10c.5-1 .3-2 1-2.7 1.5 1.4 3 3.3 3 6.2A4.5 4.5 0 0 1 12 18a4.5 4.5 0 0 1-4.5-4.5c0-2 1-3.6 2.2-5C8.8 7 8.5 5 9.4 3.4 10.2 4 11 4.2 12 2z"/></svg>
+    </div>
+    <button class="nav-btn ativo" data-go="map-card" title="Mapa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2z"/><path d="M9 4v14M15 6v14"/></svg></button>
+    <button class="nav-btn" data-go="stats" title="Resumo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></button>
+    <button class="nav-btn" data-go="lista-card" title="Focos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h10"/></svg></button>
+    <button class="nav-btn" data-go="hist-card" title="Tendência"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l3-4 3 3 4-7"/></svg></button>
+    <div class="sep"></div>
+    <button class="nav-btn" data-go="alerta" title="Alerta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg></button>
+  </nav>
+
+  <div class="shell">
+    <!-- Topbar -->
+    <div class="topbar">
+      <div class="titles">
+        <h1>Monitor de Incêndios - Maricá</h1>
+        <p>Detecção de focos em tempo real · NASA FIRMS / VIIRS S-NPP</p>
+      </div>
+      <div class="spacer"></div>
+      <span class="clock" id="clock">--:--:--</span>
+      <span class="pill live" id="status-pill"><span class="dot"></span><span id="status-txt">Carregando</span></span>
+      <button class="btn primary" id="btn-atualizar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-2.6-6.4M21 3v5h-5"/></svg>
+        Atualizar
+      </button>
+    </div>
+
+    <!-- Alert -->
+    <div class="alerta tranquilo" id="alerta">
+      <div class="ico" id="alerta-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/></svg></div>
+      <span class="rot" id="alerta-rot">Carregando</span>
+      <span class="msg" id="alerta-msg">Consultando satélite…</span>
+    </div>
+
+    <!-- Content -->
+    <div class="content">
+      <!-- Stats -->
+      <div class="stats" id="stats">
+        <div class="card stat t-total"><div class="tile"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c1 3-1.5 4-1.5 6.5A2 2 0 0 0 12.5 10c.5-1 .3-2 1-2.7 1.5 1.4 3 3.3 3 6.2A4.5 4.5 0 0 1 12 18a4.5 4.5 0 0 1-4.5-4.5c0-2 1-3.6 2.2-5C8.8 7 8.5 5 9.4 3.4 10.2 4 11 4.2 12 2z"/></svg></div><div><div class="num" id="s-total">—</div><div class="lbl">Focos hoje</div></div></div>
+        <div class="card stat t-alto"><div class="tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg></div><div><div class="num" id="s-alto">—</div><div class="lbl">Risco alto</div></div></div>
+        <div class="card stat t-medio"><div class="tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg></div><div><div class="num" id="s-medio">—</div><div class="lbl">Risco médio</div></div></div>
+        <div class="card stat t-baixo"><div class="tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></svg></div><div><div class="num" id="s-baixo">—</div><div class="lbl">Risco baixo</div></div></div>
+      </div>
+
+      <!-- Map -->
+      <div class="card map-card" id="map-card">
+        <div class="card-h"><h2>Mapa de focos</h2><span class="meta" id="map-area">—</span></div>
+        <div id="map"></div>
+      </div>
+
+      <!-- Panel -->
+      <div class="panel">
+        <div class="card">
+          <div class="card-h"><h2>Visualização</h2></div>
+          <div class="seg" id="seg-visu">
+            <button data-modo="marcadores" class="ativo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-6.3-7-11a7 7 0 0 1 14 0c0 4.7-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>Marcadores</button>
+            <button data-modo="calor"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2c1 3-1.5 4-1.5 6.5A2 2 0 0 0 12.5 10c.5-1 .3-2 1-2.7 1.5 1.4 3 3.3 3 6.2A4.5 4.5 0 0 1 12 18a4.5 4.5 0 0 1-4.5-4.5"/></svg>Calor</button>
+          </div>
+          <div class="chips" id="filtros">
+            <span class="chip ativo" data-nivel="todos">Todos</span>
+            <span class="chip" data-nivel="alto">Alto</span>
+            <span class="chip" data-nivel="medio">Médio</span>
+            <span class="chip" data-nivel="baixo">Baixo</span>
+          </div>
+        </div>
+
+        <div class="card dados-card" id="dados-card">
+          <div class="card-h"><h2>Dados e uso</h2><span class="meta">últimos 30 dias</span></div>
+          <div class="metricas">
+            <div class="metrica"><div class="n" id="m-acessos">—</div><div class="l">Acessos</div></div>
+            <div class="metrica"><div class="n" id="m-unicos">—</div><div class="l">Visitantes únicos</div></div>
+            <div class="metrica"><div class="n" id="m-dias">—</div><div class="l">Dias ativos</div></div>
+            <div class="metrica"><div class="n" id="m-retorno">—</div><div class="l">Retorno de visitantes</div></div>
+          </div>
+          <div class="acoes">
+            <a class="btn" id="btn-csv" href="/api/historico/exportar?formato=csv" download>Exportar CSV</a>
+            <a class="btn" id="btn-json" href="/api/historico/exportar?formato=json" download>Exportar JSON</a>
+            <button class="btn primary" id="btn-feedback" type="button">Enviar feedback</button>
+          </div>
+          <div class="versao" id="versao">v— · SQLite</div>
+        </div>
+
+        <div class="card lista-card" id="lista-card">
+          <div class="card-h"><h2>Focos detectados</h2><span class="meta" id="lista-count">0</span></div>
+          <div class="foco-list" id="foco-list"><div class="loading">Buscando dados da NASA…</div></div>
+          <div class="src" id="src">Fonte: NASA FIRMS · VIIRS S-NPP</div>
+        </div>
+      </div>
+
+      <!-- History -->
+      <div class="card hist-card" id="hist-card">
+        <div class="card-h"><h2>Tendência — últimos 7 dias</h2><span class="meta">focos/dia</span></div>
+        <div class="barras" id="barras"><div class="vazio">Sem histórico ainda. Os dados aparecem após as primeiras coletas.</div></div>
+        <div class="legenda">
+          <span class="leg"><span class="d" style="background:var(--alto)"></span>Alto ≥ 80%</span>
+          <span class="leg"><span class="d" style="background:var(--medio)"></span>Médio 50–79%</span>
+          <span class="leg"><span class="d" style="background:var(--baixo)"></span>Baixo &lt; 50%</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<dialog id="dlg-feedback" aria-labelledby="fb-titulo">
+  <form id="form-feedback" method="dialog">
+    <h2 id="fb-titulo">Sua opinião sobre o app</h2>
+    <p class="ajuda">Anônimo: não pedimos nome nem dados pessoais.</p>
+    <label>Tipo
+      <select id="fb-tipo" required>
+        <option value="ideia">Ideia para melhorar</option>
+        <option value="problema">Problema / erro</option>
+        <option value="elogio">Elogio</option>
+      </select>
+    </label>
+    <label>Nota geral (1 a 5)
+      <select id="fb-nota" required>
+        <option value="5">5 — Muito bom</option>
+        <option value="4">4</option>
+        <option value="3">3</option>
+        <option value="2">2</option>
+        <option value="1">1 — Ruim</option>
+      </select>
+    </label>
+    <label>Comentário (opcional)
+      <textarea id="fb-comentario" maxlength="500" placeholder="O que você tentou fazer? O que podemos melhorar?"></textarea>
+    </label>
+    <div id="fb-msg" role="status"></div>
+    <div class="linha">
+      <button class="btn" type="button" id="fb-cancelar">Fechar</button>
+      <button class="btn primary" type="submit" id="fb-enviar">Enviar</button>
+    </div>
+  </form>
+</dialog>
+
+<script src="app.js"></script>
+</body>
+</html>

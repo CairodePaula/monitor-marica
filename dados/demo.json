@@ -1,0 +1,9 @@
+{
+  "descricao": "Focos fictícios usados SOMENTE para demonstração quando a NASA FIRMS está indisponível e não há cache. Nunca são gravados no histórico.",
+  "area": "Maricá",
+  "focos": [
+    { "lat": -22.9195, "lng": -42.8183, "confidence": 90, "frp": 120, "daynight": "D", "acq_date": "2026-06-19", "acq_time": "1500", "brightness": 350 },
+    { "lat": -22.9000, "lng": -42.8300, "confidence": 60, "frp": 60,  "daynight": "D", "acq_date": "2026-06-19", "acq_time": "1505", "brightness": 280 },
+    { "lat": -22.932949, "lng": -42.890388, "confidence": 30, "frp": 20, "daynight": "D", "acq_date": "2026-06-19", "acq_time": "1510", "brightness": 200 }
+  ]
+}

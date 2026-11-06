@@ -1,0 +1,29 @@
+{
+  "name": "monitor-marica",
+  "version": "1.4.0",
+  "description": "Monitor de Incêndios - Maricá (focos de incêndio via NASA FIRMS)",
+  "main": "lib/app.js",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node scripts/servidor-local.js",
+    "dev": "nodemon scripts/servidor-local.js",
+    "backup": "node scripts/backup.js",
+    "test": "node --test \"test/**/*.test.js\""
+  },
+  "dependencies": {
+    "axios": "^1.18.0",
+    "cors": "^2.8.6",
+    "csv-parse": "^5.6.0",
+    "express": "^4.22.2",
+    "express-rate-limit": "^7.5.1",
+    "helmet": "^8.2.0",
+    "dotenv": "^16.6.1",
+    "pg": "^8.13.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1",
+    "pg-mem": "^3.0.5"
+  }
+}
